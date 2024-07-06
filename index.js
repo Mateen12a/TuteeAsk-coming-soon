@@ -4,6 +4,7 @@ const path = require("path");
 const nodemailer = require('nodemailer');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
+const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
@@ -52,9 +53,10 @@ mongoose.connect(uri)
 app.set("views", path.join(__dirname, "/src/views"));
 app.set("view engine", "ejs");
 
-app.get('*', (req, res) => {
+app.get('/', (req, res) => {
     res.render('coming-soon');
   });
+  
 app.post('/', async (req, res) => {
     if (!req.body.email) {
         // Return a message to the frontend or render an error template
@@ -136,7 +138,7 @@ app.post('/', async (req, res) => {
                 </head>
                 <body>
                     <div class="container">
-                        <img class="logo" src="https://tuteeask.com/images/logo.svg" alt="Tutee Ask Logo">
+                        <img class="logo" src="https://tuteeask.com/images/logo.png" alt="TuteeAsk Logo">
                         <h1>Thank you for subscribing!</h1>
                         <p>You're now on the list to be notified when TuteeAsk launches. Get ready to ask, learn, and grow!</p>
                     </div>
@@ -157,4 +159,22 @@ app.post('/', async (req, res) => {
       res.status(500).json({ success: false, error: error.message || 'An error occurred.' });
   }
     
+});
+
+
+app.use(async (req, res, next) => {
+    const filePath = path.join(__dirname, 'public', req.url); // Construct file path
+
+    try {
+        await fs.promises.access(filePath, fs.constants.F_OK); // Check file accessibility
+        // File exists, so let Express serve it
+        next(); 
+    } catch (error) {
+        if (error.code === 'ENOENT') { // File does not exist
+            res.redirect('/'); // Redirect to coming soon page
+        } else {
+            console.error('Error accessing file:', error);
+            res.status(500).send('Internal Server Error');
+        }
+    }
 });
